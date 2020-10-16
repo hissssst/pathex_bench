@@ -36,15 +36,19 @@ lens = lensx ~> lensx ~> lensx ~> lensx ~> lensx ~> lensx
   end,
 
   "varpath" => fn ->
-    {:ok, 4} = view pathvar, bigstructure
+    {:ok, 4} = view bigstructure, pathvar
   end,
 
   "simple" => fn ->
-    {:ok, 4} = view path_simple, bigstructure
+    {:ok, 4} = view bigstructure, path_simple
   end,
 
   "composed" => fn ->
-    {:ok, 4} = view path_composed, bigstructure
+    {:ok, 4} = view bigstructure, path_composed
+  end,
+
+  "inlined" => fn ->
+    {:ok, 4} = view bigstructure, path(:x/:x/:x/:x/:x/:x/3)
   end,
 
   "focus" => fn ->
@@ -58,7 +62,6 @@ lens = lensx ~> lensx ~> lensx ~> lensx ~> lensx ~> lensx
 
 """
 Operating System: Linux
-CPU Information: Intel(R) Core(TM) m3-7Y30 CPU @ 1.00GHz
 Number of Available Cores: 4
 Available memory: 3.79 GB
 Elixir 1.10.2
@@ -72,12 +75,6 @@ reduction time: 0 ns
 parallel: 1
 inputs: none specified
 Estimated total run time: 15 s
-
-Benchmarking composed...
-Benchmarking focus...
-Benchmarking get_in...
-Benchmarking simple...
-Benchmarking varpath...
 
 Name               ips        average  deviation         median         99th %
 simple          4.25 M      235.09 ns  ±6362.65%         173 ns         718 ns

@@ -37,16 +37,20 @@ lens = lensx ~> lensx ~> lensx ~> lensx ~> lensx ~> lensx
     ^resstructure = put_in(bigstructure, [:x, :x, :x, :x, :x, :x], 2)
   end,
 
+  "inlined" => fn ->
+    {:ok, ^resstructure} = set bigstructure, path(:x/:x/:x/:x/:x/:x), 2
+  end,
+
   "varpath" => fn ->
-    {:ok, ^resstructure} = set pathvar, bigstructure, 2
+    {:ok, ^resstructure} = set bigstructure, pathvar, 2
   end,
 
   "simply" => fn ->
-    {:ok, ^resstructure} = set path1, bigstructure, 2
+    {:ok, ^resstructure} = set bigstructure, path1, 2
   end,
 
   "composed" => fn ->
-    {:ok, ^resstructure} = set path2, bigstructure, 2
+    {:ok, ^resstructure} = set bigstructure, path2, 2
   end,
 
   "focus" => fn ->
@@ -60,7 +64,6 @@ lens = lensx ~> lensx ~> lensx ~> lensx ~> lensx ~> lensx
 
 """
 Operating System: Linux
-CPU Information: Intel(R) Core(TM) m3-7Y30 CPU @ 1.00GHz
 Number of Available Cores: 4
 Available memory: 3.79 GB
 Elixir 1.10.2
@@ -74,12 +77,6 @@ reduction time: 0 ns
 parallel: 1
 inputs: none specified
 Estimated total run time: 15 s
-
-Benchmarking composed...
-Benchmarking focus...
-Benchmarking put_in...
-Benchmarking simply...
-Benchmarking varpath...
 
 Name               ips        average  deviation         median         99th %
 simply       1644.61 K        0.61 μs  ±2884.44%        0.47 μs        1.55 μs

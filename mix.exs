@@ -16,8 +16,8 @@ defmodule PathexBench.MixProject do
   defp deps do
     [
       {:focus, "~> 0.3.5"},
-      {:benchee, github: "bencheeorg/benchee"},
-      {:pathex, "~> 0.2.0"}
+      {:benchee, "~> 1.0.1"},
+      {:pathex, path: "../pathex"}
     ]
   end
 end
