@@ -1,5 +1,3 @@
-# PathexBench
-
 This project shows efficency of `Pathex` path-closures,
 `Focus` lenses and builtin `put_in`, `get_in`
 
