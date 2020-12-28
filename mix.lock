@@ -2,4 +2,5 @@
   "benchee": {:hex, :benchee, "1.0.1", "66b211f9bfd84bd97e6d1beaddf8fc2312aaabe192f776e8931cb0c16f53a521", [:mix], [{:deep_merge, "~> 1.0", [hex: :deep_merge, repo: "hexpm", optional: false]}], "hexpm", "3ad58ae787e9c7c94dd7ceda3b587ec2c64604563e049b2a0e8baafae832addb"},
   "deep_merge": {:hex, :deep_merge, "1.0.0", "b4aa1a0d1acac393bdf38b2291af38cb1d4a52806cf7a4906f718e1feb5ee961", [:mix], [], "hexpm", "ce708e5f094b9cd4e8f2be4f00d2f4250c4095be93f8cd6d018c753894885430"},
   "focus": {:hex, :focus, "0.3.5", "ba9f2c3cc6ea9398db66ebbb859ba22d91341d64f6f771e87f7679b5bff1c6a1", [:mix], [], "hexpm", "962390084c8fffc134bb23e38dbd51da63e7e05462fd91ca16be478b513fc982"},
+  "lens": {:hex, :lens, "1.0.0", "bad01a2ff90ce0e13ce486ed1750c92c06d96d271368e56771fe68d0415d4877", [:mix], [], "hexpm", "581349c3e42181696f71ead8b016cc548715eb125c41d003297dd1a670e46f21"},
 }

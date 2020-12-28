@@ -17,6 +17,7 @@ defmodule PathexBench.MixProject do
     [
       {:focus, "~> 0.3.5"},
       {:benchee, "~> 1.0.1"},
+      {:lens, "~> 1.0.0"},
       {:pathex, path: "../pathex"}
     ]
   end
