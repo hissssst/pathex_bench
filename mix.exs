@@ -15,10 +15,15 @@ defmodule PathexBench.MixProject do
 
   defp deps do
     [
+      {:benchee, "~> 1.0"},
       {:focus, "~> 0.3.5"},
-      {:benchee, "~> 1.0.1"},
       {:lens, "~> 1.0.0"},
-      {:pathex, path: "../pathex"}
+      {:floki, "~> 0.32.0"},
+      {:meeseeks, "~> 0.16"},
+
+      # {:pathex, "~> 2.3"},
+      {:pathex, path: "../pathex", override: true},
+      # {:pathex_html, path: "../pathex_html"},
     ]
   end
 end

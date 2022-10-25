@@ -1,7 +1,6 @@
-import Pathex, except: ["~>": 2]
+import Pathex
 require Pathex
 
-import Focus, only: ["~>": 2]
 require Focus
 
 bigstructure = %{
@@ -10,31 +9,63 @@ bigstructure = %{
 
 defmodule Paths do
 
-  def path1(), do: path(:x/:x/:x/:x/:x/3)
+  defmacro debug(code) do
+    code
+    |> Macro.expand(__CALLER__)
+    |> Macro.to_string()
+    |> Code.format_string!()
+    |> IO.puts
+
+    code
+  end
+
+  def pattern_matching(structure) do
+    %{x: %{x: %{x: %{x: %{x: [_, _, _, value | _]}}}}} = structure
+    value
+  end
+
+  def path1(), do: path(:x / :x / :x / :x / :x / 3)
 
   def pathvar(var) do
     index = 3
-    path var/var/var/var/var/index
+    path(var / var / var) ~> path(var / var / index)
+  end
+
+  def inlined(x) do
+    view(x, path(:x / :x / :x / :x / :x / 3, :json))
+  end
+
+  def do_get_in(x, list) do
+    get_in(x, list)
   end
 
   def path2() do
     pathx = path(:x, :map)
     pathlist = path(3)
-    Pathex.~>(pathx,
-      Pathex.~>(pathx,
-        Pathex.~>(pathx,
-          Pathex.~>(pathx,
-            Pathex.~>(pathx, pathlist)
-          )
-        )
-      )
-    )
+
+    pathx ~> pathx ~> pathx ~> pathx ~> pathx ~> pathlist
+  end
+
+  def path3() do
+    path(:x / :x / :x / :x / :x, :map) ~> path(3)
   end
 
   def focus(var) do
     lensx = Lens.make_lens(var)
     lens3 = Lens.idx(3)
-    lensx ~> lensx ~> lensx ~> lensx ~> lensx ~> lens3
+    Focus.compose(
+      lensx,
+      Focus.compose(
+        lensx,
+        Focus.compose(
+          lensx,
+          Focus.compose(
+            lensx,
+            Focus.compose(lensx, lens3)
+          )
+        )
+      )
+    )
   end
 
   def lens(var) do
@@ -55,88 +86,103 @@ defmodule Paths do
       )
     )
   end
-
 end
 
-path1   = Paths.path1()
-path2   = Paths.path2()
+path1 = Paths.path1()
+path2 = Paths.path2()
+path3 = Paths.path3()
 pathvar = Paths.pathvar(:x)
-focus   = Paths.focus(:x)
-lens    = Paths.lens(:x)
+focus = Paths.focus(:x)
+lens = Paths.lens(:x)
+
+access_list = [:x, :x, :x, :x, :x, Access.at!(3)]
 
 %{
+  "pattern_matching" => fn ->
+    4 = Paths.pattern_matching(bigstructure)
+  end,
   "get_in" => fn ->
-    [_, _, _, 4] = get_in(bigstructure, [:x,:x,:x,:x,:x])
+    4 = Paths.do_get_in(bigstructure, access_list)
   end,
-
+  "optimized" => fn ->
+    {:ok, 4} = view(bigstructure, path3)
+  end,
   "varpath" => fn ->
-    {:ok, 4} = view bigstructure, pathvar
+    {:ok, 4} = view(bigstructure, pathvar)
   end,
-
   "simple" => fn ->
-    {:ok, 4} = view bigstructure, path1
+    {:ok, 4} = view(bigstructure, path1)
   end,
-
   "composed" => fn ->
-    {:ok, 4} = view bigstructure, path2
+    {:ok, 4} = view(bigstructure, path2)
   end,
-
   "inlined" => fn ->
-    {:ok, 4} = view bigstructure, path(:x/:x/:x/:x/:x/3)
+    {:ok, 4} = Paths.inlined(bigstructure)
   end,
-
   "focus" => fn ->
-    4 = focus |> Focus.view(bigstructure)
+    4 = Focus.view(focus, bigstructure)
   end,
-
   "lens" => fn ->
     4 = Lenss.one!(lens, bigstructure)
   end
 }
 |> Benchee.run(
   warmup: 2,
+  memory_time: 1,
   time: 5
 )
 
 """
 Operating System: Linux
-CPU Information: Intel(R) Core(TM) m3-7Y30 CPU @ 1.00GHz
-Number of Available Cores: 4
-Available memory: 3.72 GB
-Elixir 1.10.2
-Erlang 23.0.2
+CPU Information: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+Number of Available Cores: 8
+Available memory: 15.35 GB
+Elixir 1.13.4
+Erlang 24.3.4.5
 
 Benchmark suite executing with the following configuration:
 warmup: 2 s
 time: 5 s
-memory time: 0 ns
+memory time: 1 s
+reduction time: 0 ns
 parallel: 1
 inputs: none specified
-Estimated total run time: 49 s
+Estimated total run time: 1.20 min
 
-Benchmarking composed...
-Benchmarking focus...
-Benchmarking get_in...
-Benchmarking inlined...
-Benchmarking lens...
-Benchmarking simple...
-Benchmarking varpath...
-
-Name               ips        average  deviation         median         99th %
-inlined        80.20 M       12.47 ns ±56492.76%           0 ns           0 ns
-get_in         26.19 M       38.19 ns ±55690.02%           0 ns           0 ns
-simple         23.61 M       42.36 ns ±72760.78%           0 ns           0 ns
-varpath        12.79 M       78.16 ns ±42297.54%           0 ns           0 ns
-composed        5.61 M      178.13 ns ±19602.03%           0 ns         790 ns
-focus           2.36 M      423.06 ns  ±6940.72%         255 ns        1067 ns
-lens            0.50 M     2007.94 ns  ±1426.55%        1357 ns        7610 ns
+Name                       ips        average  deviation         median         99th %
+pattern_matching       12.16 M       82.20 ns   ±338.71%          81 ns         101 ns
+inlined                 8.11 M      123.36 ns ±10801.45%          94 ns         156 ns
+simple                  7.25 M      137.99 ns ±10943.52%         102 ns         169 ns
+optimized               5.95 M      168.18 ns ±15513.69%         122 ns         215 ns
+get_in                  5.08 M      196.96 ns ±12149.67%         145 ns         327 ns
+varpath                 4.25 M      235.05 ns ±17714.94%         140 ns         296 ns
+composed                3.06 M      327.11 ns  ±8591.52%         192 ns         426 ns
+focus                   2.54 M      393.05 ns  ±4786.24%         319 ns         597 ns
+lens                    0.91 M     1101.06 ns  ±2514.16%         792 ns        1413 ns
 
 Comparison:
-inlined        80.20 M
-get_in         26.19 M - 3.06x slower +25.72 ns
-simple         23.61 M - 3.40x slower +29.89 ns
-varpath        12.79 M - 6.27x slower +65.69 ns
-composed        5.61 M - 14.29x slower +165.66 ns
-focus           2.36 M - 33.93x slower +410.59 ns
-lens            0.50 M - 161.04x slower +1995.47 ns
+pattern_matching       12.16 M
+inlined                 8.11 M - 1.50x slower +41.16 ns
+simple                  7.25 M - 1.68x slower +55.78 ns
+optimized               5.95 M - 2.05x slower +85.98 ns
+get_in                  5.08 M - 2.40x slower +114.75 ns
+varpath                 4.25 M - 2.86x slower +152.85 ns
+composed                3.06 M - 3.98x slower +244.91 ns
+focus                   2.54 M - 4.78x slower +310.84 ns
+lens                    0.91 M - 13.39x slower +1018.85 ns
+
+Memory usage statistics:
+
+Name                Memory usage
+pattern_matching             0 B
+inlined                     72 B - ∞ x memory usage +72 B
+simple                      96 B - ∞ x memory usage +96 B
+optimized                  208 B - ∞ x memory usage +208 B
+get_in                      88 B - ∞ x memory usage +88 B
+varpath                    224 B - ∞ x memory usage +224 B
+composed                   592 B - ∞ x memory usage +592 B
+focus                      136 B - ∞ x memory usage +136 B
+lens                      1592 B - ∞ x memory usage +1592 B
+
+**All measurements for memory usage were the same**
 """

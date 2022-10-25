@@ -1,43 +1,44 @@
-import Pathex, except: ["~>": 2]
+import Pathex, except: [~>: 2]
 require Pathex
 
-import Focus, only: ["~>": 2]
+import Focus, only: [~>: 2]
 require Focus
 
 bigstructure = %{
-  x: %{x: %{x: %{x: %{x: %{x: 1}}}}}
-}
-
-resstructure = %{
-  x: %{x: %{x: %{x: %{x: %{x: 2}}}}}
+  x: %{x: %{x: %{x: %{x: [1, 2, 3, 4]}}}}
 }
 
 defmodule Paths do
-
-  def path1(), do: path(:x/:x/:x/:x/:x/:x)
+  def path1(), do: path(:x / :x / :x / :x / :x / 3)
 
   def pathvar(var) do
-    path var/var/var/var/var/var
+    index = 3
+    Pathex.~>(path(var / var / var), path(var / var / index))
   end
 
   def path2() do
     pathx = path(:x)
-    Pathex.~>(pathx,
-      Pathex.~>(pathx,
-        Pathex.~>(pathx,
-          Pathex.~>(pathx,
-            Pathex.~>(pathx, pathx)
+
+    Pathex.~>(
+      pathx,
+      Pathex.~>(
+        pathx,
+        Pathex.~>(
+          pathx,
+          Pathex.~>(
+            pathx,
+            Pathex.~>(pathx, path(3))
           )
         )
       )
     )
   end
 
-  def path3(), do: path(:x/:x/:x/:x/:x/:x, :map)
+  def path3(), do: path(:x / :x / :x / :x / :x / 3, :json)
 
   def focus(var) do
     lensx = Lens.make_lens(var)
-    lensx ~> lensx ~> lensx ~> lensx ~> lensx ~> lensx
+    lensx ~> lensx ~> lensx ~> lensx ~> lensx ~> Lens.idx(3)
   end
 
   def lens(var) do
@@ -51,7 +52,7 @@ defmodule Paths do
             Lenss.key(var),
             Lenss.seq(
               Lenss.key(var),
-              Lenss.key(var)
+              Lenss.index(3)
             )
           )
         )
@@ -59,95 +60,105 @@ defmodule Paths do
     )
   end
 
+  def inlined(x) do
+    set!(x, path(:x / :x / :x / :x / :x / 3, :json), 2)
+  end
+
 end
 
-path1   = Paths.path1()
-path2   = Paths.path2()
-path3   = Paths.path3()
+path1 = Paths.path1()
+path2 = Paths.path2()
+path3 = Paths.path3()
 pathvar = Paths.pathvar(:x)
-focus   = Paths.focus(:x)
-lens    = Paths.lens(:x)
+focus = Paths.focus(:x)
+lens = Paths.lens(:x)
+
+access_path = [:x, :x, :x, :x, :x, Access.at!(3)]
 
 %{
   "put_in" => fn ->
-    ^resstructure = put_in(bigstructure, [:x, :x, :x, :x, :x, :x], 2)
+    put_in(bigstructure, access_path, 2)
   end,
-
   "inlined" => fn ->
-    {:ok, ^resstructure} = set bigstructure, path(:x/:x/:x/:x/:x/:x), 2
+    Paths.inlined(bigstructure)
   end,
-
   "varpath" => fn ->
-    {:ok, ^resstructure} = set bigstructure, pathvar, 2
+    set!(bigstructure, pathvar, 2)
   end,
-
   "map mod" => fn ->
-    {:ok, ^resstructure} = set bigstructure, path3, 2
+    set!(bigstructure, path3, 2)
   end,
-
   "simply" => fn ->
-    {:ok, ^resstructure} = set bigstructure, path1, 2
+    set!(bigstructure, path1, 2)
   end,
-
   "composed" => fn ->
-    {:ok, ^resstructure} = set bigstructure, path2, 2
+    set!(bigstructure, path2, 2)
   end,
-
   "focus" => fn ->
-    ^resstructure = focus |> Focus.set(bigstructure, 2)
+    focus |> Focus.set(bigstructure, 2)
   end,
-
   "lens" => fn ->
-    ^resstructure = Lenss.put(lens, bigstructure, 2)
+    Lenss.put(lens, bigstructure, 2)
   end
 }
+|> tap(fn m ->
+  [head | tail] = Enum.map(m, fn {_, v} -> v.() end)
+  true = Enum.all?(tail, & &1 == head)
+end)
 |> Benchee.run(
   warmup: 2,
+  memory_time: 1,
   time: 5
 )
 
 """
 Operating System: Linux
-CPU Information: Intel(R) Core(TM) m3-7Y30 CPU @ 1.00GHz
-Number of Available Cores: 4
-Available memory: 3.72 GB
-Elixir 1.10.2
-Erlang 23.0.2
+CPU Information: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+Number of Available Cores: 8
+Available memory: 15.35 GB
+Elixir 1.13.4
+Erlang 24.3.4.5
 
 Benchmark suite executing with the following configuration:
 warmup: 2 s
 time: 5 s
-memory time: 0 ns
+memory time: 1 s
+reduction time: 0 ns
 parallel: 1
 inputs: none specified
-Estimated total run time: 56 s
-
-Benchmarking composed...
-Benchmarking focus...
-Benchmarking inlined...
-Benchmarking lens...
-Benchmarking map mod...
-Benchmarking put_in...
-Benchmarking simply...
-Benchmarking varpath...
+Estimated total run time: 1.07 min
 
 Name               ips        average  deviation         median         99th %
-inlined        16.96 M       58.97 ns ±38021.19%           0 ns         280 ns
-varpath         7.29 M      137.09 ns ±30336.96%           0 ns         426 ns
-simply          6.80 M      147.15 ns ±28481.65%           0 ns         317 ns
-map mod         6.54 M      152.95 ns ±28904.50%           0 ns         375 ns
-composed        1.33 M      750.61 ns  ±4751.99%         422 ns     1445.09 ns
-put_in          1.27 M      790.25 ns  ±4130.77%         496 ns        1802 ns
-lens            0.45 M     2233.56 ns  ±1294.40%        1638 ns        4500 ns
-focus           0.25 M     4005.91 ns   ±716.66%        3322 ns       13143 ns
+inlined         3.77 M      265.57 ns ±15839.66%         127 ns         329 ns
+simply          3.50 M      285.65 ns ±14753.77%         165 ns         327 ns
+map mod         3.47 M      288.32 ns ±17318.40%         153 ns         367 ns
+varpath         2.72 M      367.57 ns  ±9741.91%         207 ns         457 ns
+composed        2.01 M      496.68 ns  ±7102.10%         290 ns         607 ns
+put_in          1.67 M      597.11 ns  ±5368.07%         345 ns         862 ns
+lens            0.94 M     1063.91 ns  ±2598.91%         722 ns        1485 ns
+focus           0.62 M     1621.40 ns  ±1110.46%        1386 ns        2478 ns
 
 Comparison:
-inlined        16.96 M
-varpath         7.29 M - 2.32x slower +78.12 ns
-simply          6.80 M - 2.50x slower +88.18 ns
-map mod         6.54 M - 2.59x slower +93.98 ns
-composed        1.33 M - 12.73x slower +691.64 ns
-put_in          1.27 M - 13.40x slower +731.28 ns
-lens            0.45 M - 37.87x slower +2174.59 ns
-focus           0.25 M - 67.93x slower +3946.93 ns
+inlined         3.77 M
+simply          3.50 M - 1.08x slower +20.08 ns
+map mod         3.47 M - 1.09x slower +22.75 ns
+varpath         2.72 M - 1.38x slower +102.01 ns
+composed        2.01 M - 1.87x slower +231.11 ns
+put_in          1.67 M - 2.25x slower +331.55 ns
+lens            0.94 M - 4.01x slower +798.34 ns
+focus           0.62 M - 6.11x slower +1355.83 ns
+
+Memory usage statistics:
+
+Name        Memory usage
+inlined            296 B
+simply             320 B - 1.08x memory usage +24 B
+map mod            320 B - 1.08x memory usage +24 B
+varpath            512 B - 1.73x memory usage +216 B
+composed          1000 B - 3.38x memory usage +704 B
+put_in            1000 B - 3.38x memory usage +704 B
+lens              1552 B - 5.24x memory usage +1256 B
+focus             1344 B - 4.54x memory usage +1048 B
+
+**All measurements for memory usage were the same**
 """
